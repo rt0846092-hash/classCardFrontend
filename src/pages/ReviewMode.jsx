@@ -4,7 +4,7 @@ import { SECTIONS } from '../data/vocabulary';
 import QuizCard from '../components/QuizCard';
 import FlipCard from '../components/FlipCard';
 
-const ALL_WORDS = SECTIONS.flatMap(s => s.words);
+const ALL_WORDS = SECTIONS.flatMap(s => s.subBlocks.flatMap(b => b.words));
 
 const buildOptions = (words, idx) => {
   const current = words[idx];

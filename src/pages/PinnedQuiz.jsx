@@ -20,7 +20,7 @@ const buildOptions = (allWords, currentWord) => {
 const PinnedQuiz = ({ navigate }) => {
   const { pins, recordAnswer } = useApp();
 
-  const allWords    = useMemo(() => SECTIONS.flatMap(s => s.words), []);
+  const allWords    = useMemo(() => SECTIONS.flatMap(s => s.subBlocks.flatMap(b => b.words)), []);
   const pinnedWords = useMemo(() => allWords.filter(w => pins.has(w.id)), [allWords, pins]);
 
   const [index,     setIndex]     = useState(0);

@@ -45,7 +45,7 @@ const PinnedWords = ({ navigate }) => {
   const { pins, togglePin, isPinned, recordAnswer } = useApp();
 
   /* ── Derived Data ── */
-  const allWords = useMemo(() => SECTIONS.flatMap(s => s.words), []);
+  const allWords = useMemo(() => SECTIONS.flatMap(s => s.subBlocks.flatMap(b => b.words)), []);
   const words = useMemo(
     () => allWords.filter(w => pins.has(w.id)),
     [allWords, pins]
