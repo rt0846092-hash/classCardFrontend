@@ -126,9 +126,13 @@ const SectionView = ({ sectionId, navigate }) => {
       </div>
 
       <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-        <button className="btn btn-ghost" onClick={() => navigate('dashboard')}>
-          ← Back to Dashboard
-        </button>
+      <button
+      className="btn btn-ghost"
+       onClick={() => navigate('dashboard')}
+      style={{ marginBottom: '15px' }}
+     >
+  ← Back to Dashboard
+</button>
       </div>
     </div>
   );
