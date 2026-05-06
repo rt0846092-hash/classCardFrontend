@@ -1,0 +1,272 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+
+/* ══════════════════════════════════════════
+   DARK THEME (default)
+══════════════════════════════════════════ */
+:root {
+  --bg-primary:   #080b18;
+  --bg-secondary: #0e1225;
+  --bg-card:      #111527;
+  --bg-card-2:    #161a30;
+  --bg-hover:     #1c2038;
+  --bg-input:     #0d1020;
+
+  --grad-bg:      linear-gradient(135deg, #080b18 0%, #0e1225 40%, #0a0e20 70%, #080b18 100%);
+  --grad-blue:    linear-gradient(135deg, #4f8ef7 0%, #6c63ff 100%);
+  --grad-green:   linear-gradient(135deg, #34d399 0%, #06b6d4 100%);
+  --grad-red:     linear-gradient(135deg, #f87171 0%, #f43f5e 100%);
+  --grad-yellow:  linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  --grad-purple:  linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+  --grad-card:    linear-gradient(160deg, #161a30 0%, #111527 60%, #0e1225 100%);
+  --grad-navbar:  linear-gradient(90deg, rgba(8,11,24,0.97) 0%, rgba(14,18,37,0.97) 100%);
+
+  --orb-blue:     radial-gradient(ellipse 60% 50% at 20% 30%, rgba(79,142,247,0.12) 0%, transparent 70%);
+  --orb-purple:   radial-gradient(ellipse 50% 60% at 80% 70%, rgba(108,99,255,0.10) 0%, transparent 70%);
+  --orb-teal:     radial-gradient(ellipse 40% 40% at 60% 20%, rgba(6,182,212,0.08) 0%, transparent 70%);
+
+  --accent-blue:      #4f8ef7;
+  --accent-blue-dark: #3a72d8;
+  --accent-blue-glow: rgba(79,142,247,0.25);
+  --accent-green:     #34d399;
+  --accent-red:       #f87171;
+  --accent-yellow:    #fbbf24;
+  --accent-purple:    #a78bfa;
+  --accent-pink:      #f472b6;
+  --accent-cyan:      #22d3ee;
+
+  --text-primary:   #eaedf8;
+  --text-secondary: #e7eafc;
+  --text-muted:     #8890b0;
+
+  --border:       #1e2340;
+  --border-light: #2a3060;
+  --border-glow:  rgba(79,142,247,0.3);
+
+  --shadow-sm:   0 2px 10px rgba(0,0,0,0.5);
+  --shadow-md:   0 6px 24px rgba(0,0,0,0.55);
+  --shadow-lg:   0 12px 48px rgba(0,0,0,0.65);
+  --shadow-glow: 0 0 40px rgba(79,142,247,0.18);
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --transition:        all 0.22s cubic-bezier(0.4,0,0.2,1);
+  --transition-slow:   all 0.4s cubic-bezier(0.4,0,0.2,1);
+  --transition-spring: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --nav-height:   64px;
+
+  /* Theme toggle button colors */
+  --theme-btn-bg:     rgba(255,255,255,0.06);
+  --theme-btn-border: rgba(255,255,255,0.12);
+  --theme-btn-color:  #fbbf24;
+}
+
+/* ══════════════════════════════════════════
+   LIGHT THEME — applied via data-theme="light" on <html>
+══════════════════════════════════════════ */
+[data-theme="light"] {
+  --bg-primary:   #f0f4ff;
+  --bg-secondary: #e8edf8;
+  --bg-card:      #ffffff;
+  --bg-card-2:    #f5f7ff;
+  --bg-hover:     #eaedfa;
+  --bg-input:     #f8f9ff;
+
+  --grad-bg:      linear-gradient(135deg, #eef1fc 0%, #f0f4ff 40%, #e8edf8 70%, #eef1fc 100%);
+  --grad-navbar:  linear-gradient(90deg, rgba(240,244,255,0.97) 0%, rgba(232,237,248,0.97) 100%);
+
+  --orb-blue:     radial-gradient(ellipse 60% 50% at 20% 30%, rgba(79,142,247,0.08) 0%, transparent 70%);
+  --orb-purple:   radial-gradient(ellipse 50% 60% at 80% 70%, rgba(108,99,255,0.06) 0%, transparent 70%);
+  --orb-teal:     radial-gradient(ellipse 40% 40% at 60% 20%, rgba(6,182,212,0.05) 0%, transparent 70%);
+
+  /* Accent colors stay the same — just slightly richer for light bg */
+  --accent-blue:      #3a7ef5;
+  --accent-blue-dark: #2563eb;
+  --accent-blue-glow: rgba(58,126,245,0.2);
+  --accent-green:     #10b981;
+  --accent-red:       #ef4444;
+  --accent-yellow:    #f59e0b;
+  --accent-purple:    #8b5cf6;
+  --accent-cyan:      #06b6d4;
+
+  --text-primary:   #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted:     #64748b;
+
+  --border:       #dde3f0;
+  --border-light: #c7d0e8;
+  --border-glow:  rgba(58,126,245,0.25);
+
+  --shadow-sm:   0 2px 10px rgba(0,0,0,0.08);
+  --shadow-md:   0 6px 24px rgba(0,0,0,0.10);
+  --shadow-lg:   0 12px 48px rgba(0,0,0,0.14);
+  --shadow-glow: 0 0 40px rgba(58,126,245,0.12);
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+
+  /* Theme toggle button colors */
+  --theme-btn-bg:     rgba(0,0,0,0.05);
+  --theme-btn-border: rgba(0,0,0,0.12);
+  --theme-btn-color:  #6c63ff;
+}
+
+/* ══════════════════════════════════════════
+   THEME TRANSITION — smooth color swap
+══════════════════════════════════════════ */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, box-shadow, fill, stroke;
+  transition-duration: 0.25s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Don't animate transforms/layout with the theme transition (causes jank) */
+.flip-card-inner,
+.progress-bar-fill,
+.quiz-option,
+.section-card,
+.btn {
+  transition: var(--transition);
+}
+
+/* ══════════════════════════════════════════
+   BASE STYLES
+══════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--grad-bg);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--orb-blue), var(--orb-purple), var(--orb-teal);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root { position: relative; z-index: 1; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 99px; }
+
+/* Typography */
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+h1 { font-size: 2.1rem; }
+h2 { font-size: 1.55rem; }
+h3 { font-size: 1.2rem; }
+
+p { color: var(--text-secondary); }
+
+a { color: var(--accent-blue); text-decoration: none; }
+a:hover { color: var(--accent-cyan); }
+
+button {
+  cursor: pointer;
+  font-family: var(--font-body);
+  outline: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  line-height: inherit;
+}
+
+.btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+
+input, select, textarea {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.8rem 1.1rem;
+  width: 100%;
+  transition: var(--transition);
+  outline: none;
+}
+
+input:focus, select:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px var(--accent-blue-glow);
+  background: var(--bg-card);
+}
+
+input::placeholder { color: var(--text-muted); }
+select option { background: var(--bg-card); color: var(--text-primary); }
+
+/* ── Keyframes ── */
+@keyframes fadeUp     { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn     { from { opacity:0; } to { opacity:1; } }
+@keyframes popIn      { 0%{transform:scale(0.88);opacity:0;} 70%{transform:scale(1.03);opacity:1;} 100%{transform:scale(1);} }
+@keyframes wrongShake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-7px);} 40%{transform:translateX(7px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} }
+@keyframes shimmer    { 0%{background-position:-200% center;} 100%{background-position:200% center;} }
+@keyframes themePop   { 0%{transform:scale(1);} 50%{transform:scale(1.18) rotate(15deg);} 100%{transform:scale(1) rotate(0deg);} }
+
+/* ── Theme toggle button ── */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--theme-btn-bg);
+  border: 1px solid var(--theme-btn-border);
+  color: var(--theme-btn-color);
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+.theme-toggle:hover {
+  background: var(--bg-hover);
+  transform: scale(1.08);
+}
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+.theme-toggle .theme-icon {
+  display: inline-block;
+  line-height: 1;
+  animation: none;
+}
+.theme-toggle:active .theme-icon {
+  animation: themePop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* ── Responsive type ── */
+@media (max-width:480px) { html{font-size:14px;} h1{font-size:1.6rem;} }
+@media (max-width:768px) { h1{font-size:1.8rem;} }
+@media (min-width:1024px){ h1{font-size:2.4rem;} }
