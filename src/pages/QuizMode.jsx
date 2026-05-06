@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../context/useApp';
-import { getWordsBySection, getSectionById } from '../data/vocabulary';
+import { getSectionById, getSubBlockById, getWordsBySubBlock } from '../data/vocabulary';
 import QuizCard from '../components/QuizCard';
 
-const COUNTS = [10, 20, 30];
+const COUNTS = [5, 10, 15, 20];
 
 const shuffle = (arr) => {
   const copy = [...arr];
@@ -16,11 +16,10 @@ const shuffle = (arr) => {
 
 const buildOptions = (words, index) => {
   const current = words[index];
-  const others  = shuffle(words.filter((_, i) => i !== index)).slice(0, 3);
+  const others = shuffle(words.filter((_, i) => i !== index)).slice(0, 3);
   return shuffle([current.word, ...others.map(w => w.word)]);
 };
 
-/* ── Streak badge ── */
 const StreakBadge = ({ streak }) => {
   if (streak < 2) return null;
   const color = streak >= 10 ? '#f59e0b' : streak >= 5 ? '#a78bfa' : '#34d399';
@@ -38,27 +37,26 @@ const StreakBadge = ({ streak }) => {
   );
 };
 
-/* ── Count Picker ── */
-const CountPicker = ({ section, totalWords, onStart, onBack }) => (
+const CountPicker = ({ section, subBlock, totalWords, onStart, onBack }) => (
   <div style={{ maxWidth: 420, margin: 'auto', width: '100%' }} className="fade-up">
     <div className="page-header">
       <div className="page-header-left">
         <button className="btn btn-ghost btn-back-sm" onClick={onBack}>← Back</button>
-        <h1 className="text-2xl font-bold">🧠 {section?.label}</h1>
+        <h1 className="text-2xl font-bold">🧠 Quiz</h1>
       </div>
     </div>
 
     <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
       <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📝</div>
-      <h2 style={{ marginBottom: '0.4rem' }}>How many questions?</h2>
-      <p className="text-gray-400 mb-6" style={{ fontSize: '0.85rem' }}>
-        {totalWords} words available in this section
+      <h2 style={{ marginBottom: '0.4rem' }}>{subBlock?.title}</h2>
+      <p className="text-gray-400 mb-4" style={{ fontSize: '0.85rem' }}>
+        {section?.label} · {totalWords} words available
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         {COUNTS.map(count => {
           const available = Math.min(count, totalWords);
-          const disabled  = totalWords < 1;
+          const disabled = totalWords < 1;
           return (
             <button
               key={count}
@@ -95,7 +93,6 @@ const CountPicker = ({ section, totalWords, onStart, onBack }) => (
   </div>
 );
 
-/* ── Wrong Answers Review ── */
 const WrongReview = ({ wrongWords, onRetryWrong, onRetryAll, onDashboard }) => (
   <div style={{ maxWidth: 500, margin: 'auto', width: '100%' }} className="fade-up">
     <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
@@ -143,23 +140,22 @@ const WrongReview = ({ wrongWords, onRetryWrong, onRetryAll, onDashboard }) => (
   </div>
 );
 
-/* ── Main Component ── */
-const QuizMode = ({ level, navigate }) => {
+const QuizMode = ({ sectionId, subBlockId, navigate }) => {
   const { recordAnswer } = useApp();
 
-  const section  = getSectionById(level);
-  const allWords = useMemo(() => getWordsBySection(level), [level]);
+  const section = getSectionById(sectionId);
+  const subBlock = getSubBlockById(sectionId, subBlockId);
+  const allWords = useMemo(() => getWordsBySubBlock(sectionId, subBlockId), [sectionId, subBlockId]);
 
   const [screen, setScreen] = useState('picker');
-
-  const [words,      setWords]      = useState([]);
+  const [words, setWords] = useState([]);
   const [wrongWords, setWrongWords] = useState([]);
-  const [index,      setIndex]      = useState(0);
-  const [wrong,      setWrong]      = useState(0);
-  const [streak,     setStreak]     = useState(0);
+  const [index, setIndex] = useState(0);
+  const [wrong, setWrong] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
-  const [startTime,  setStartTime]  = useState(null);
-  const [endTime,    setEndTime]    = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
 
   const options = useMemo(() => {
     if (!words.length || screen !== 'quiz') return [];
@@ -204,19 +200,18 @@ const QuizMode = ({ level, navigate }) => {
     }
   }, [index, words.length]);
 
-  /* ── Picker ── */
   if (screen === 'picker') {
     return (
       <CountPicker
         section={section}
+        subBlock={subBlock}
         totalWords={allWords.length}
         onStart={(count) => startQuiz(allWords.slice(0, count))}
-        onBack={() => navigate('dashboard')}
+        onBack={() => navigate('section', { sectionId })}
       />
     );
   }
 
-  /* ── Wrong review ── */
   if (screen === 'wrong-review') {
     return (
       <WrongReview
@@ -228,12 +223,11 @@ const QuizMode = ({ level, navigate }) => {
     );
   }
 
-  /* ── Results ── */
   if (screen === 'results') {
     const correct = words.length - wrong;
-    const time    = endTime ? Math.floor((endTime - startTime) / 1000) : 0;
-    const pct     = Math.round((correct / words.length) * 100);
-    const grade   = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 50 ? '👍' : '💪';
+    const time = endTime ? Math.floor((endTime - startTime) / 1000) : 0;
+    const pct = Math.round((correct / words.length) * 100);
+    const grade = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 50 ? '👍' : '💪';
 
     return (
       <div className="text-center fade-up" style={{ maxWidth: 420, margin: 'auto', width: '100%' }}>
@@ -242,10 +236,10 @@ const QuizMode = ({ level, navigate }) => {
 
         <div className="grid-2 results-grid" style={{ marginBottom: '1.25rem', textAlign: 'center' }}>
           {[
-            { label: 'Score',       value: `${correct} / ${words.length}`, color: 'var(--accent-blue)' },
-            { label: 'Accuracy',    value: `${pct}%`,                      color: pct >= 70 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-yellow)' : 'var(--accent-red)' },
-            { label: 'Best Streak', value: `${bestStreak} 🔥`,             color: 'var(--accent-yellow)' },
-            { label: 'Time',        value: `${time}s`,                     color: 'var(--accent-purple)' },
+            { label: 'Score', value: `${correct} / ${words.length}`, color: 'var(--accent-blue)' },
+            { label: 'Accuracy', value: `${pct}%`, color: pct >= 70 ? 'var(--accent-green)' : pct >= 50 ? 'var(--accent-yellow)' : 'var(--accent-red)' },
+            { label: 'Best Streak', value: `${bestStreak} 🔥`, color: 'var(--accent-yellow)' },
+            { label: 'Time', value: `${time}s`, color: 'var(--accent-purple)' },
           ].map(s => (
             <div key={s.label} className="card" style={{ padding: '0.9rem' }}>
               <div className="stat-label">{s.label}</div>
@@ -263,20 +257,19 @@ const QuizMode = ({ level, navigate }) => {
             </button>
           )}
           <button className="btn btn-ghost" onClick={() => setScreen('picker')}>
-            ← Count
+            ← 뒤로
           </button>
           <button className="btn btn-primary" onClick={() => startQuiz(words)}>
-            🔄 Retry
+            🔄 다시 풀기
           </button>
-          <button className="btn" onClick={() => navigate('dashboard')}>
-            🏠
+          <button className="btn" onClick={() => navigate('section', { sectionId })}>
+            📚 섹션으로
           </button>
         </div>
       </div>
     );
   }
 
-  /* ── Quiz ── */
   const pct = Math.round(((index + 1) / words.length) * 100);
 
   return (
@@ -284,7 +277,10 @@ const QuizMode = ({ level, navigate }) => {
       <div className="page-header">
         <div className="page-header-left">
           <button onClick={() => setScreen('picker')} className="btn btn-ghost btn-back-sm">← Back</button>
-          <h1 className="text-2xl font-bold">🧠 {section?.label || level}</h1>
+          <div>
+            <h1 className="text-2xl font-bold">🧠 {subBlock?.title}</h1>
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{section?.label}</p>
+          </div>
         </div>
         <div className="page-header-right" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <span className="text-sm text-gray-400">{index + 1} / {words.length}</span>

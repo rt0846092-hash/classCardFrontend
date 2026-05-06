@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useApp } from '../context/useApp';
-import { getWordsBySection, getSectionById } from '../data/vocabulary';
+import { getSectionById, getSubBlockById, getWordsBySubBlock } from '../data/vocabulary';
 import FlipCard from '../components/FlipCard';
 
 const shuffleArr = (arr) => {
@@ -12,16 +12,17 @@ const shuffleArr = (arr) => {
   return copy;
 };
 
-const StudyMode = ({ level, navigate }) => {
+const StudyMode = ({ sectionId, subBlockId, navigate }) => {
   const { recordAnswer, togglePin, isPinned } = useApp();
 
-  const baseWords = useMemo(() => getWordsBySection(level), [level]);
-  const section   = useMemo(() => getSectionById(level), [level]);
+  const section = useMemo(() => getSectionById(sectionId), [sectionId]);
+  const subBlock = useMemo(() => getSubBlockById(sectionId, subBlockId), [sectionId, subBlockId]);
+  const baseWords = useMemo(() => getWordsBySubBlock(sectionId, subBlockId), [sectionId, subBlockId]);
 
   const [shuffled, setShuffled] = useState(false);
-  const [words, setWords]       = useState(baseWords);
-  const [index, setIndex]       = useState(0);
-  const startTimeRef            = useRef(null);
+  const [words, setWords] = useState(baseWords);
+  const [index, setIndex] = useState(0);
+  const startTimeRef = useRef(null);
 
   useEffect(() => {
     startTimeRef.current = Date.now();
@@ -42,36 +43,36 @@ const StudyMode = ({ level, navigate }) => {
       setIndex(i => i + 1);
     } else {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-      navigate('dashboard', {
+      navigate('section', { sectionId }, {
         doneMsg: `Done! ${Math.floor(elapsed / 60)}m ${elapsed % 60}s 🎉`,
       });
     }
-  }, [index, words, recordAnswer, navigate]);
+  }, [index, words, recordAnswer, navigate, sectionId]);
 
   if (!words.length) {
-    return <div className="text-center text-gray-400 py-8">No words found for this section.</div>;
+    return <div className="text-center text-gray-400 py-8">No words found for this lesson.</div>;
   }
 
   const pct = Math.round(((index + 1) / words.length) * 100);
 
   return (
     <div style={{ maxWidth: '540px', margin: 'auto', width: '100%' }} className="fade-up">
-
-      {/* Header */}
       <div className="page-header">
         <div className="page-header-left">
           <button
-            onClick={() => navigate('dashboard')}
+            onClick={() => navigate('section', { sectionId })}
             className="btn btn-ghost btn-back-sm"
             style={{ padding: '6px 12px', fontSize: '13px' }}
           >
-            ← Back
+            ← 뒤로
           </button>
-          <h1 className="text-2xl font-bold">📖 {section?.label || level}</h1>
+          <div>
+            <h1 className="text-2xl font-bold">📖 {subBlock?.title || 'Study'}</h1>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{section?.label}</p>
+          </div>
         </div>
 
         <div className="page-header-right">
-          {/* Shuffle toggle */}
           <button
             onClick={handleShuffleToggle}
             className="btn btn-ghost"
