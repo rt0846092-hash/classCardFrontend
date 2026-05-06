@@ -545,3 +545,32 @@
   .btn { font-size:0.78rem; padding:0.5rem 0.75rem; }
   .page-header h1, .page-header .text-2xl { font-size:1.1rem !important; }
 }
+
+/* Add these utility classes at the VERY BOTTOM of main.css */
+
+.text-left-mobile { text-align: left; }
+.text-center-mobile { text-align: center; }
+
+@media (max-width: 480px) {
+  .text-left-mobile { text-align: left; }
+  .text-center-mobile { text-align: center; }
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.touch-feedback {
+  transition: transform 0.1s ease;
+}
+.touch-feedback:active {
+  transform: scale(0.97);
+}

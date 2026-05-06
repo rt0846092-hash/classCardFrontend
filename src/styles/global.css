@@ -10,7 +10,7 @@
   --bg-card-2:    #161a30;
   --bg-hover:     #1c2038;
   --bg-input:     #0d1020;
-  
+
   --grad-bg:      linear-gradient(135deg, #080b18 0%, #0e1225 40%, #0a0e20 70%, #080b18 100%);
   --grad-blue:    linear-gradient(135deg, #4f8ef7 0%, #6c63ff 100%);
   --grad-green:   linear-gradient(135deg, #34d399 0%, #06b6d4 100%);
@@ -270,3 +270,4 @@ select option { background: var(--bg-card); color: var(--text-primary); }
 @media (max-width:480px) { html{font-size:14px;} h1{font-size:1.6rem;} }
 @media (max-width:768px) { h1{font-size:1.8rem;} }
 @media (min-width:1024px){ h1{font-size:2.4rem;} }
+
