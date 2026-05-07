@@ -85,9 +85,9 @@ const QuizCard = ({ word, options, onAnswer, onNext }) => {
 
     if (soundRef.current) {
       beep(isCorrect ? 'correct' : 'wrong');
-      if (isCorrect) {
-        setTimeout(() => speak(word.word), 320);
-      }
+      // ✅ No setTimeout — speak must be synchronous inside the gesture
+      // for Kakao WebView to allow it
+      if (isCorrect) speak(word.word);
     }
 
     onAnswer(isCorrect);

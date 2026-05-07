@@ -1,12 +1,32 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-// Safe speech — Kakao browser does not support speechSynthesis
+// Safe speech — Kakao browser specific handling
 const safeSpeech = (text) => {
   if (!text) return;
+  
+  // Check for speech synthesis support
   if (!window.speechSynthesis || typeof window.speechSynthesis.speak !== 'function') return;
+  
   try {
+    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // For Kakao browser, we need to ensure the utterance is created and spoken synchronously
+    // within the user gesture context
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    
+    // Some browsers need a small delay to work properly
+    setTimeout(() => {
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        // Silently fail - error parameter intentionally omitted
+      }
+    }, 0);
   } catch {
     // silently ignore if WebView blocks it
   }
@@ -22,15 +42,12 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
     mutedRef.current = muted;
   }, [muted]);
 
-  const speak = useCallback((text) => {
-    if (mutedRef.current) return;
-    safeSpeech(text);
-  }, []);
-
+  // Direct handler — no useCallback wrapper so speech fires synchronously
+  // inside the user gesture, which Kakao requires
   const triggerFlip = useCallback(() => {
-    speak(word?.word);
+    if (!mutedRef.current) safeSpeech(word?.word);
     setIsFlipped(p => !p);
-  }, [speak, word?.word]);
+  }, [word?.word]);
 
   const handleNext = useCallback(() => {
     setIsFlipped(false);
@@ -51,7 +68,7 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [triggerFlip, handleNext]);
+  }, [handleNext, triggerFlip]);
 
   if (!word || !word.id) {
     return (
