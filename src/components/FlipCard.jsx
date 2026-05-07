@@ -1,58 +1,172 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+/* ─────────────────────────────────────────────
+   Speech Engine — handles KakaoTalk WebView,
+   LINE, Instagram, and all standard browsers.
+   
+   Root causes in restricted WebViews (KakaoTalk/LINE on Android & iOS):
+   1. speechSynthesis exists but speak() silently fails
+   2. cancel() kills the audio context before voices load
+   3. Voices never fire 'voiceschanged' — must poll
+   4. iOS WebView requires a direct user-gesture call chain
+   5. Android WebView (Chromium-based KakaoTalk) needs
+      a resumed AudioContext before TTS will work
+───────────────────────────────────────────── */
+
+const SpeechEngine = (() => {
+  let voices = [];
+  
+  let audioCtx = null;
+
+  // Detect KakaoTalk / restricted WebView
+  const isRestrictedWebView = () => {
+    const ua = navigator.userAgent || '';
+    return (
+      /KAKAO/i.test(ua) ||
+      /Line\//i.test(ua) ||
+      /Instagram/i.test(ua) ||
+      /FB_IAB/i.test(ua) ||
+      // Generic Android WebView (not Chrome)
+      (/Android/.test(ua) && /wv/.test(ua) && !/Chrome\/\d/.test(ua))
+    );
+  };
+
+  // Try to resume/create AudioContext — needed on Android WebView
+  const unlockAudioContext = () => {
+    try {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          audioCtx = new AudioCtx();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    } catch (err) {
+  console.warn(err);
+}
+  };
+
+  // Load voices with polling fallback (WebViews often miss 'voiceschanged')
+  const loadVoices = () => {
+    if (!window.speechSynthesis) return;
+    const attempt = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length) {
+        voices = v;
+        return true;
+      }
+      return false;
+    };
+    if (!attempt()) {
+      // Standard event
+      window.speechSynthesis.addEventListener('voiceschanged', () => attempt());
+      // Polling fallback for WebViews that never fire the event
+      let tries = 0;
+      const poll = setInterval(() => {
+        if (attempt() || ++tries > 20) clearInterval(poll);
+      }, 250);
+    }
+  };
+
+  loadVoices();
+
+  // Pick best English/Korean voice
+  const pickVoice = () => {
+    if (!voices.length) voices = window.speechSynthesis?.getVoices() || [];
+    // Prefer Korean voices for Korean content, fall back to English
+    const preferred = voices.find(v => /ko[-_]/i.test(v.lang))
+      || voices.find(v => /en[-_]US/i.test(v.lang))
+      || voices.find(v => /en/i.test(v.lang))
+      || voices[0]
+      || null;
+    return preferred;
+  };
+
+  const speak = (text, { onDone, onError } = {}) => {
+    if (!text) return;
+    if (!window.speechSynthesis) {
+      onError?.('not_supported');
+      return;
+    }
+
+    unlockAudioContext();
+
+    // On restricted WebViews, don't cancel — it breaks things.
+    // On standard browsers, cancel is fine to stop previous speech.
+    if (!isRestrictedWebView()) {
+      window.speechSynthesis.cancel();
+    }
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang  = 'en-US';
+    utter.rate  = 0.9;
+    utter.pitch = 1;
+
+    const voice = pickVoice();
+    if (voice) utter.voice = voice;
+
+    utter.onend   = () => onDone?.();
+    utter.onerror = (e) => {
+      // 'interrupted' is harmless — fired when a new utterance cancels the old one
+      if (e.error !== 'interrupted') onError?.(e.error);
+    };
+
+    // KakaoTalk iOS WebView: speech must be triggered synchronously
+    // inside the event handler. We use a tiny timeout(0) trick only on
+    // Android where direct call sometimes fails.
+    if (/Android/i.test(navigator.userAgent) && isRestrictedWebView()) {
+      setTimeout(() => {
+        try { window.speechSynthesis.speak(utter); } catch (err){
+          console.warn(err);
+        } { onError?.('speak_failed'); }
+      }, 0);
+    } else {
+      try { window.speechSynthesis.speak(utter); } catch (err) {
+        console.warn(err);
+        onError?.('speak_failed');
+      }
+    }
+
+
+  };
+
+  const isSupported = () => !!window.speechSynthesis;
+
+  return { speak, isSupported, isRestrictedWebView };
+})();
+
+/* ─────────────────────────────────────────────
+   FlipCard Component
+───────────────────────────────────────────── */
 const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [isFlipped,    setIsFlipped]    = useState(false);
+  const [muted,        setMuted]        = useState(false);
+  const [speechStatus, setSpeechStatus] = useState('idle'); // idle | speaking | error | unsupported
   const mutedRef = useRef(false);
 
-  // Sync ref with state
+  const speechSupported = SpeechEngine.isSupported();
+  const isKakao         = SpeechEngine.isRestrictedWebView();
+
   useEffect(() => {
     mutedRef.current = muted;
   }, [muted]);
 
   const speak = useCallback((text) => {
-    if (mutedRef.current || !text) return;
+    if (mutedRef.current || !text || !speechSupported) return;
 
-    // Guard: some KakaoTalk WebView versions don't expose speechSynthesis at all
-    if (!window.speechSynthesis) return;
-
-    const doSpeak = () => {
-      const utter = new SpeechSynthesisUtterance(text);
-
-      // Must set lang explicitly — WebViews silently bail without it
-      utter.lang = 'en-US';
-      utter.rate = 0.9;
-      utter.pitch = 1;
-      utter.volume = 1;
-
-      // Pick an English voice explicitly.
-      // WebViews often ignore utterances with no voice assigned.
-      const voices = window.speechSynthesis.getVoices();
-      const preferred =
-        voices.find(v => v.lang === 'en-US' && v.localService) ||
-        voices.find(v => v.lang.startsWith('en-US')) ||
-        voices.find(v => v.lang.startsWith('en')) ||
-        voices[0]; // absolute fallback
-
-      if (preferred) utter.voice = preferred;
-
-      // IMPORTANT: Do NOT call speechSynthesis.cancel() before speak().
-      // In KakaoTalk's WebView, cancel() consumes the user-gesture token,
-      // so the subsequent speak() call is treated as non-gesture-initiated
-      // and gets silently blocked.
-      window.speechSynthesis.speak(utter);
-    };
-
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      // Voices already loaded — speak immediately (stays within gesture window)
-      doSpeak();
-    } else {
-      // Voices not loaded yet — wait for voiceschanged, then speak.
-      // { once: true } ensures the listener is auto-removed after firing.
-      window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true });
-    }
-  }, []);
+    setSpeechStatus('speaking');
+    SpeechEngine.speak(text, {
+      onDone:  () => setSpeechStatus('idle'),
+      onError: (err) => {
+        console.warn('[Speech] error:', err);
+        setSpeechStatus(err === 'not_supported' ? 'unsupported' : 'error');
+        // Auto-reset after 2s so icon doesn't stay red
+        setTimeout(() => setSpeechStatus('idle'), 2000);
+      },
+    });
+  }, [speechSupported]);
 
   const triggerFlip = useCallback(() => {
     speak(word?.word);
@@ -65,10 +179,6 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
   }, [onNext]);
 
   // Keyboard shortcuts
-  // NOTE: keydown is NOT a valid user gesture for speechSynthesis in mobile
-  // WebViews (KakaoTalk, Instagram, etc.). Speech won't fire from here on
-  // mobile — this only works on desktop browsers. That's a WebView limitation,
-  // not a code bug.
   useEffect(() => {
     const handleKey = (e) => {
       if (e.code === 'Space') {
@@ -79,10 +189,25 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
         handleNext();
       }
     };
-
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [triggerFlip, handleNext]);
+
+  // Sound button icon + color
+  const soundIcon = () => {
+    if (!speechSupported) return '🔇';
+    if (muted)            return '🔇';
+    if (speechStatus === 'speaking') return '🔊';
+    if (speechStatus === 'error')    return '⚠️';
+    return '🔊';
+  };
+
+  const soundLabel = () => {
+    if (!speechSupported) return 'No TTS';
+    if (muted)            return 'Muted';
+    if (speechStatus === 'error') return 'Retry';
+    return muted ? 'Muted' : 'Sound';
+  };
 
   if (!word || !word.id) {
     return (
@@ -131,17 +256,40 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+
+        {/* Sound / Mute button */}
         <button
-          onClick={() => setMuted(p => !p)}
+          onClick={() => {
+            // Toggling mute off = also attempt to speak right now
+            const willUnmute = muted;
+            setMuted(p => !p);
+            if (willUnmute && word?.word) {
+              // Small delay so mutedRef updates first
+              setTimeout(() => speak(word.word), 50);
+            }
+          }}
+          disabled={!speechSupported}
           className="btn"
           style={{
-            background: muted ? 'rgba(239,68,68,0.15)' : 'transparent',
-            border: `1px solid ${muted ? '#ef4444' : '#374151'}`,
-            color: muted ? '#f87171' : '#6b7280',
+            background: muted
+              ? 'rgba(239,68,68,0.15)'
+              : speechStatus === 'error'
+              ? 'rgba(245,158,11,0.15)'
+              : 'transparent',
+            border: `1px solid ${
+              muted ? '#ef4444'
+              : speechStatus === 'error' ? '#f59e0b'
+              : '#374151'
+            }`,
+            color: muted ? '#f87171'
+              : speechStatus === 'error' ? '#fcd34d'
+              : '#6b7280',
+            opacity: !speechSupported ? 0.4 : 1,
           }}
+          title={isKakao ? '카카오 브라우저: 음성 제한이 있을 수 있습니다' : ''}
         >
-          {muted ? '🔇 Muted' : '🔊 Sound'}
+          {soundIcon()} {soundLabel()}
         </button>
 
         <button
@@ -158,6 +306,19 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
 
         <button onClick={handleNext} className="btn btn-primary">Next →</button>
       </div>
+
+      {/* Show a friendly warning inside KakaoTalk */}
+      {isKakao && !muted && (
+        <p style={{
+          textAlign: 'center',
+          fontSize: '11px',
+          color: '#f59e0b',
+          marginTop: '8px',
+          opacity: 0.8,
+        }}>
+          카카오 브라우저에서는 음성이 제한될 수 있어요. Chrome에서 열면 더 잘 작동합니다.
+        </p>
+      )}
 
       <p style={{ textAlign: 'center', fontSize: '11px', color: '#4b5563', marginTop: '12px' }}>
         Space to flip · Enter or → to next
