@@ -146,7 +146,7 @@ html { font-size: 16px; scroll-behavior: smooth; }
 body {
   font-family: var(--font-body);
   background: var(--grad-bg);
-  background-attachment: fixed;
+  background-attachment: scroll;
   color: var(--text-primary);
   min-height: 100vh;
   line-height: 1.65;
@@ -157,7 +157,7 @@ body {
 
 body::before {
   content: '';
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: var(--orb-blue), var(--orb-purple), var(--orb-teal);
   pointer-events: none;
@@ -270,4 +270,3 @@ select option { background: var(--bg-card); color: var(--text-primary); }
 @media (max-width:480px) { html{font-size:14px;} h1{font-size:1.6rem;} }
 @media (max-width:768px) { h1{font-size:1.8rem;} }
 @media (min-width:1024px){ h1{font-size:2.4rem;} }
-

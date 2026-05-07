@@ -1,5 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// Safe speech — Kakao browser does not support speechSynthesis
+const safeSpeech = (text) => {
+  if (!text) return;
+  if (!window.speechSynthesis || typeof window.speechSynthesis.speak !== 'function') return;
+  try {
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  } catch {
+    // silently ignore if WebView blocks it
+  }
+};
+
 const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -11,9 +23,8 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
   }, [muted]);
 
   const speak = useCallback((text) => {
-    if (mutedRef.current || !text) return;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+    if (mutedRef.current) return;
+    safeSpeech(text);
   }, []);
 
   const triggerFlip = useCallback(() => {
@@ -40,7 +51,7 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [triggerFlip, handleNext]);   // ← Now stable
+  }, [triggerFlip, handleNext]);
 
   if (!word || !word.id) {
     return (

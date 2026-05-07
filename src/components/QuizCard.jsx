@@ -1,18 +1,42 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// ── Audio Context singleton — Kakao blocks new AudioContext per-call ──
+let _audioCtx = null;
+const getAudioCtx = () => {
+  try {
+    if (!_audioCtx) {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (_audioCtx.state === 'suspended') {
+      _audioCtx.resume();
+    }
+    return _audioCtx;
+  } catch {
+    return null;
+  }
+};
+
+// ── Safe speech — Kakao browser does not support speechSynthesis ──
 const speak = (text) => {
-  if (!text || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.lang = 'en-US';
-  utt.rate = 0.92;
-  utt.pitch = 1.05;
-  window.speechSynthesis.speak(utt);
+  if (!text) return;
+  if (!window.speechSynthesis || typeof window.speechSynthesis.speak !== 'function') return;
+  try {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'en-US';
+    utt.rate = 0.92;
+    utt.pitch = 1.05;
+    window.speechSynthesis.speak(utt);
+  } catch {
+    // silently ignore
+  }
 };
 
 const beep = (type = 'correct') => {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
