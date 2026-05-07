@@ -1,37 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-// Safe speech — Kakao browser specific handling
-const safeSpeech = (text) => {
-  if (!text) return;
-  
-  // Check for speech synthesis support
-  if (!window.speechSynthesis || typeof window.speechSynthesis.speak !== 'function') return;
-  
-  try {
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // For Kakao browser, we need to ensure the utterance is created and spoken synchronously
-    // within the user gesture context
-    utterance.lang = 'en-US';
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    
-    // Some browsers need a small delay to work properly
-    setTimeout(() => {
-      try {
-        window.speechSynthesis.speak(utterance);
-      } catch {
-        // Silently fail - error parameter intentionally omitted
-      }
-    }, 0);
-  } catch {
-    // silently ignore if WebView blocks it
-  }
-};
-
 const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -42,12 +10,54 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
     mutedRef.current = muted;
   }, [muted]);
 
-  // Direct handler — no useCallback wrapper so speech fires synchronously
-  // inside the user gesture, which Kakao requires
+  const speak = useCallback((text) => {
+    if (mutedRef.current || !text) return;
+
+    // Guard: some KakaoTalk WebView versions don't expose speechSynthesis at all
+    if (!window.speechSynthesis) return;
+
+    const doSpeak = () => {
+      const utter = new SpeechSynthesisUtterance(text);
+
+      // Must set lang explicitly — WebViews silently bail without it
+      utter.lang = 'en-US';
+      utter.rate = 0.9;
+      utter.pitch = 1;
+      utter.volume = 1;
+
+      // Pick an English voice explicitly.
+      // WebViews often ignore utterances with no voice assigned.
+      const voices = window.speechSynthesis.getVoices();
+      const preferred =
+        voices.find(v => v.lang === 'en-US' && v.localService) ||
+        voices.find(v => v.lang.startsWith('en-US')) ||
+        voices.find(v => v.lang.startsWith('en')) ||
+        voices[0]; // absolute fallback
+
+      if (preferred) utter.voice = preferred;
+
+      // IMPORTANT: Do NOT call speechSynthesis.cancel() before speak().
+      // In KakaoTalk's WebView, cancel() consumes the user-gesture token,
+      // so the subsequent speak() call is treated as non-gesture-initiated
+      // and gets silently blocked.
+      window.speechSynthesis.speak(utter);
+    };
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      // Voices already loaded — speak immediately (stays within gesture window)
+      doSpeak();
+    } else {
+      // Voices not loaded yet — wait for voiceschanged, then speak.
+      // { once: true } ensures the listener is auto-removed after firing.
+      window.speechSynthesis.addEventListener('voiceschanged', doSpeak, { once: true });
+    }
+  }, []);
+
   const triggerFlip = useCallback(() => {
-    if (!mutedRef.current) safeSpeech(word?.word);
+    speak(word?.word);
     setIsFlipped(p => !p);
-  }, [word?.word]);
+  }, [speak, word?.word]);
 
   const handleNext = useCallback(() => {
     setIsFlipped(false);
@@ -55,6 +65,10 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
   }, [onNext]);
 
   // Keyboard shortcuts
+  // NOTE: keydown is NOT a valid user gesture for speechSynthesis in mobile
+  // WebViews (KakaoTalk, Instagram, etc.). Speech won't fire from here on
+  // mobile — this only works on desktop browsers. That's a WebView limitation,
+  // not a code bug.
   useEffect(() => {
     const handleKey = (e) => {
       if (e.code === 'Space') {
@@ -68,7 +82,7 @@ const FlipCard = ({ word = {}, onNext, onPin, isPinned }) => {
 
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [handleNext, triggerFlip]);
+  }, [triggerFlip, handleNext]);
 
   if (!word || !word.id) {
     return (
