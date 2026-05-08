@@ -50,15 +50,36 @@ const loadVoices = () => {
 
 if (typeof window !== 'undefined') loadVoices();
 
-// ─── Voice picker — prefers Google en-US, most consistent across devices ──
+// ─── Voice picker ─────────────────────────────────────────────────────────
+// Priority: well-known female voices by exact name (no gender API exists).
+const FEMALE_NAMES = [
+  'Google US English',       // Chrome Windows — female
+  'Microsoft Zira',          // Windows SAPI — female
+  'Microsoft Jenny',         // Windows 11 — female
+  'Google US English Female',// Android Chrome
+  'Samantha',                // iOS/macOS — female
+  'Karen',                   // Australian female
+  'Moira',                   // Irish female
+];
+
 const pickVoice = () => {
   if (!_voices.length) _voices = window.speechSynthesis?.getVoices() || [];
+
+  // 1. Exact match on known female voice names
+  for (const name of FEMALE_NAMES) {
+    const v = _voices.find(v => v.name === name);
+    if (v) return v;
+  }
+
+  // 2. Any voice with 'female' in the name (some Android voices)
+  const femaleTag = _voices.find(v => /female/i.test(v.name) && /en/i.test(v.lang));
+  if (femaleTag) return femaleTag;
+
+  // 3. Fallback: any en-US, any English, whatever exists
   return (
-    _voices.find(v => /en[-_]US/i.test(v.lang) && /google/i.test(v.name)) ||
-    _voices.find(v => /en[-_]US/i.test(v.lang))                           ||
-    _voices.find(v => /en[-_]GB/i.test(v.lang))                           ||
-    _voices.find(v => /en/i.test(v.lang))                                  ||
-    _voices[0]                                                              ||
+    _voices.find(v => /en[-_]US/i.test(v.lang)) ||
+    _voices.find(v => /en/i.test(v.lang))        ||
+    _voices[0]                                   ||
     null
   );
 };
